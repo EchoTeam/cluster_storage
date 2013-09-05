@@ -7,6 +7,10 @@
                   kernel,
                   stdlib
                  ]},
-  {mod, { cluster_storage_app, []}},
-  {env, []}
+  {mod, {cluster_storage_app, []}},
+  {env, [
+    {storage_nodes, [sname1@node1]},
+    {buckets, [cs_bucket1]},
+    {dump_dir, "/var/log"}
+  ]}
  ]}.

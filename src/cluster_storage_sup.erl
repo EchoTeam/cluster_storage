@@ -9,9 +9,6 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
-
 %% ===================================================================
 %% API functions
 %% ===================================================================
@@ -24,5 +21,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    {ok, { {one_for_one, 5, 10}, []} }.
+    {ok, Buckets} = application:get_env(cluster_storage, buckets),
+    {ok, { {one_for_one, 5, 10}, workers(Buckets) }}.
 
+workers(Buckets) ->
+    [{B, {cluster_storage, start_link, [B]},
+            permanent, 5000, worker, [cluster_storage]} || B <- Buckets].
