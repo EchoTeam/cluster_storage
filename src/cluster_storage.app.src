@@ -1,0 +1,12 @@
+{application, cluster_storage,
+ [
+  {description, "Cluster-wide storage for storing primitive data on cluster nodes."},
+  {vsn, "1.0.0"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { cluster_storage_app, []}},
+  {env, []}
+ ]}.
