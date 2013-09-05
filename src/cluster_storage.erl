@@ -256,7 +256,7 @@ init(Name) ->
     Filename = dump_filename(Name),
     Tab = case ets:file2tab(Filename, [{verify, true}]) of
         {ok, Table} -> Table;
-        {error, Reason} ->
+        {error, _} ->
             error_logger:info_msg("Server ~p: Unable to load dump file '~p'. Creating new table...~n", [Name, Filename]),
             ets:new(list_to_atom("cluster_storage_tab-" ++ atom_to_list(Name)), [])
     end,
@@ -287,6 +287,7 @@ terminate(_Reason, #state{server_name=Name, tab=Tab}) ->
 unixtime() -> unixtime(now()).
 unixtime({Mega, Secs, _Msecs}) -> Mega * 1000000 + Secs.
 
+with_random([], _) -> nop;
 with_random(Alternatives, Function) when is_function(Function, 1) ->
     N = length(Alternatives),
     R = element(3, now()),
