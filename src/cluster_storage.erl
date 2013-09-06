@@ -76,7 +76,15 @@ store(ServerName, Key, Value, ExpireSecs) ->
         {store, Key, Value, ExpireSecs}).
 
 get(ServerName, Key) ->
-    gen_server:call(ServerName, {get, Key}).
+    Ts = unixtime(),
+    case ets:lookup(kv_tab_name(ServerName), Key) of
+        [{_, Value, ExpireTs, _, _}] ->
+            case ExpireTs > Ts of
+                true -> {ok, Value};
+                false -> {error, not_found}
+            end;
+        _ -> {error, not_found}
+    end.
 
 get(ServerName, Key, Default) ->
     case get(ServerName, Key) of
@@ -102,18 +110,6 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %%
-
-handle_call({get, Key}, _From, #state{tab=Tab} = State) ->
-    Ts = unixtime(),
-    Res = case ets:lookup(Tab, Key) of
-        [{_, Value, ExpireTs, _, _}] -> 
-            case ExpireTs > Ts of
-                true -> {ok, Value};
-                false -> {error, not_found}
-            end;
-        _ -> {error, not_found}
-    end,
-    {reply, Res, State};
 handle_call({store, Key, Value, ExpireSecs}, _From,
         #state{server_name=Name, tab=Tab, dumper=Dumper, idxtab=IdxTab, idxpool=IdxPool, maxidx=MaxIdx} = State) ->
     Ts = unixtime(),
@@ -258,10 +254,10 @@ init(Name) ->
         {ok, Table} -> Table;
         {error, _} ->
             error_logger:info_msg("Server ~p: Unable to load dump file '~p'. Creating new table...~n", [Name, Filename]),
-            ets:new(list_to_atom("cluster_storage_tab-" ++ atom_to_list(Name)), [])
+            ets:new(kv_tab_name(Name), [set, protected, named_table])
     end,
     % building index
-    IdxTab = ets:new(list_to_atom("cluster_storage_idx_tab-" ++ atom_to_list(Name)), [ordered_set]),
+    IdxTab = ets:new(list_to_atom("cluster_storage_idx_tab_" ++ atom_to_list(Name)), [ordered_set]),
     MaxIdx = ets:foldl(fun({Key, Value, ExpireTS, LastUpdateTS, _}, PrevI) ->
         I = PrevI + 1,
         ets:insert(Tab, {Key, Value, ExpireTS, LastUpdateTS, I}),
@@ -293,6 +289,9 @@ with_random(Alternatives, Function) when is_function(Function, 1) ->
     R = element(3, now()),
     Element = lists:nth((R rem N) + 1, Alternatives),
     Function(Element).
+
+kv_tab_name(ServerName) ->
+    list_to_atom("cluster_storage_tab_" ++ atom_to_list(ServerName)).
 
 dump_filename(ServerName) ->
     {ok, DumpDir} = application:get_env(cluster_storage, dump_dir),
