@@ -1,7 +1,3 @@
-%%% 
-%%% Copyright (c) 2011 JackNyfe. All rights reserved.
-%%% THIS SOFTWARE IS PROPRIETARY AND CONFIDENTIAL. DO NOT REDISTRIBUTE.
-%%% 
 %%% vim: ts=4 sts=4 sw=4 expandtab:
 
 -module(cluster_storage).
